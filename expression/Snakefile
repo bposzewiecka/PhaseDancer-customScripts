@@ -1,0 +1,155 @@
+import csv
+
+from count_expression import count_expression
+
+def get_data(fn):
+   
+    data = []
+
+    with open(fn) as csvfile:
+        metadatareader = csv.DictReader(csvfile, delimiter=',')
+
+        for row in metadatareader:  
+           data.append((row['Run'], row['BioProject'],  row['individual']))
+
+    return data
+
+def get_data_run(fn, rrun):
+    print(fn, rrun)
+
+    with open(fn) as csvfile:
+
+        metadatareader = csv.DictReader(csvfile, delimiter=',')
+
+        for row in metadatareader:
+	   
+            if row['Run'] == rrun:
+                return [row['Run'], row['BioProject'], row['Organism'], row['individual'], row['source_name']]
+
+
+
+TRINITY_SINGULARITY_DIR = '/home/basia/bin/trinityrnaseq/'
+
+runs = {
+  'PRJNA527986': [
+       'SRR8750639', 'SRR8750646', 'SRR8750647', 'SRR8750648', 'SRR8750655', 'SRR8750668',  # chimp
+       'SRR8750401', 'SRR8750422', 'SRR8750428', 'SRR8750449', 'SRR8750452', 'SRR8750612',  # bonobo
+       'SRR8750733', 'SRR8750741', 'SRR8750459', 'SRR8750479', 'SRR8750487', 'SRR8750491',  # human
+   ],
+
+  'PRJNA445737': [
+	'SRR6900765', 'SRR6900766', 'SRR6900767', 'SRR6900768'
+   ]
+
+}
+
+
+#ruleorder: get_fastq_from_run > download_run
+
+rule main:
+    input:
+       [ expand(f'data/{biosample}/{rrun}/{{ref}}-minimap2/{biosample}.{rrun}.{{ref}}.minimap2.expression.tsv', ref = 'hg38_masked') for rrun, biosample, individual in  get_data('PRJNA527986.txt') if individual in ('ha', 'bb', 'cb') ]
+       [ expand(f'data/{biosample}/{rrun}/{{ref}}-minimap2/{biosample}.{rrun}.{{ref}}.minimap2.expression.tsv', ref = 'hg38_masked') for rrun, biosample, individual in  get_data('PRJNA445737.txt') if individual in ('ha', 'bb', 'cb') ]
+
+
+"""
+
+rule download_run:       	    
+    output:
+        'data_download/{biosample}/{run}'
+    shell:
+         'wget -P data_download/{wildcards.biosample} --no-verbose https://sra-pub-run-odp.s3.amazonaws.com/sra/{wildcards.run}/{wildcards.run}'
+
+rule get_fastq_from_run_paired:
+    input:
+        dump = 'data_download/{biosample}/{run}'
+    output:
+        r1 = 'data/{biosample}/{run}/{run}_1.fastq',
+        r2 = 'data/{biosample}/{run}/{run}_2.fastq'
+    shell:
+        'fastq-dump --split-files {input}; mv {wildcards.run}_1.fastq {output.r1}; mv {wildcards.run}_2.fastq {output.r2};'
+
+"""
+
+rule run_trinity:
+    input: 
+        r1 = 'data/{biosample}/{run}/{run}_1.fastq',
+        r2 = 'data/{biosample}/{run}/{run}_2.fastq'
+    output:
+        'data/{biosample}/{run}/{run}_trinity.Trinity.fasta'
+    threads:
+         80	    
+    shell:
+        'singularity exec -e ' + TRINITY_SINGULARITY_DIR + 'trinityrnaseq.v2.13.2.simg Trinity --seqType fq --left {input.r1} --right {input.r2}  --max_memory 100G --CPU {threads} --output data/{wildcards.biosample}/{wildcards.run}/{wildcards.run}_trinity'
+
+rule create_star_index:
+    input:
+        ref = 'data/refs/{ref}.fa'
+    output: 
+        index = directory('data/{ref}_index/')
+    shell:
+        'STAR --runThreadN 40 --runMode genomeGenerate --genomeDir data/{wildcards.ref}_index --genomeFastaFiles {input.ref} --genomeSAindexNbases 9'
+
+rule run_star:
+    input:
+        r1 = 'data/{biosample}/{run}/{run}_1.fastq',
+        r2 = 'data/{biosample}/{run}/{run}_2.fastq',
+	index = 'data/{ref}_index'
+    output:
+        'data/{biosample}/{run}/{ref}/{biosample}.{run}.{ref}.Aligned.sortedByCoord.out.bam'
+    threads:
+         80
+    shell:
+        'ulimit -n 10000; STAR --genomeDir {input.index} --runThreadN 40 --readFilesIn {input.r1} {input.r2} --outFileNamePrefix data/{wildcards.biosample}/{wildcards.run}/{wildcards.ref}/{wildcards.biosample}.{wildcards.run}.{wildcards.ref}. --outSAMtype BAM SortedByCoordinate --outSAMunmapped Within --outSAMattributes Standard'
+
+
+rule run_star_trinity:
+    input:
+        assembly = 'data/{biosample}/{run}/{run}_trinity.Trinity.fasta',
+        index = 'data/{ref}_index'
+    output:
+        'data/{biosample}/{run}/{ref}-trinity/{biosample}.{run}.{ref}-trinity.Aligned.sortedByCoord.out.bam'
+    threads:
+         80
+    shell:
+        'ulimit -n 10000; STAR --genomeDir {input.index} --runThreadN 40 --readFilesIn {input.assembly} --outFileNamePrefix data/{wildcards.biosample}/{wildcards.run}/{wildcards.ref}-trinity/{wildcards.biosample}.{wildcards.run}.{wildcards.ref}-trinity. --outSAMtype BAM SortedByCoordinate --outSAMunmapped Within --outSAMattributes Standard'
+
+
+rule index_bam:
+    input:
+        bam = '{name}.bam'
+    output:
+        bai = '{name}.bam.bai'
+    threads:
+        20
+    shell:
+        'samtools index	-@ {threads} {input.bam}'
+
+rule run_minimap2:
+    input:
+        r1 = 'data/{biosample}/{run}/{run}_1.fastq',
+        r2 = 'data/{biosample}/{run}/{run}_2.fastq',
+        ref = 'data/refs/{ref}/{ref}.fa'	
+    output:
+        bam = 'data/{biosample}/{run}/{ref}-minimap2/{biosample}.{run}.{ref}.minimap2.bam'
+    threads:
+         80
+    shell:
+        'minimap2 -t {threads} --sam-hit-only -ax splice:hq -uf {input.ref} {input.r1} {input.r2} | samtools sort - > {output.bam}'
+
+rule count_expression:
+    input:
+        transcripts = 'data/genes_subset.tsv',
+        bam = 'data/{biosample}/{run}/{ref}-minimap2/{biosample}.{run}.{ref}.minimap2.bam',
+        fasta1 = 'data/{biosample}/{run}/{run}_1.fastq',
+        fasta2 = 'data/{biosample}/{run}/{run}_2.fastq',
+        desc = '{biosample}.txt'
+    output:
+        express = 'data/{biosample}/{run}/{ref}-minimap2/{biosample}.{run}.{ref}.minimap2.expression.tsv'
+    run:
+        try:
+            data_run = get_data_run(input.desc, wildcards.run)
+            count_expression(data_run, input.transcripts, input.bam, input.fasta1, input.fasta2, output.express)       
+        except e:
+             print(e)
+
