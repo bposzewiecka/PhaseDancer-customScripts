@@ -1,0 +1,129 @@
+# https://bionanogenomics.com/wp-content/uploads/2017/03/30172-Bionano-Solve-Software-Installation-Guide.pdf
+# https://bionanogenomics.com/wp-content/uploads/2018/04/30205-Guidelines-for-Running-Bionano-Solve-Pipeline-on-Command-Line.pdf
+# ftp://ftp.ncbi.nlm.nih.gov/pub/supplementary_data/bionanomaps.csv
+
+USER_DIR = '/home/basia'
+
+BIONANO_BIN_FOLDER = USER_DIR + '/bin/Solve/' 
+REF_FOLDER = USER_DIR + '/fussion/data/refs/'
+DATA_FOLDER = USER_DIR + '/bionano/data/'
+
+SINGULARITY_IMAGE = 'solve_v3.5.1.sif'
+
+opt = ['optArguments_haplotype_DLE1_saphyr_human_D4Z4.xml',
+'optArguments_haplotype_DLE1_saphyr_human_guided.xml',
+'optArguments_haplotype_DLE1_saphyr_human.xml',
+'optArguments_haplotype_DLE1_saphyr.xml',
+'optArguments_haplotype_irys.xml',
+'optArguments_haplotype_noCut_DLE1_saphyr_human.xml',
+'optArguments_haplotype_noCut_DLE1_saphyr.xml',
+'optArguments_haplotype_noCut_irys.xml',
+'optArguments_haplotype_noCut_saphyr_human.xml',
+'optArguments_haplotype_noCut_saphyr.xml',
+'optArguments_haplotype_saphyr_human_D4Z4_guided.xml',
+'optArguments_haplotype_saphyr_human_D4Z4.xml',
+'optArguments_haplotype_saphyr_human_guided.xml',
+'optArguments_haplotype_saphyr_human.xml',
+'optArguments_haplotype_saphyr.xml',
+'optArguments_nonhaplotype_BG_DLE1_saphyr.xml',
+'optArguments_nonhaplotype_BG_saphyr.xml',
+'optArguments_nonhaplotype_DLE1_saphyr_human_guided.xml',
+'optArguments_nonhaplotype_DLE1_saphyr_human.xml',
+'optArguments_nonhaplotype_DLE1_saphyr.xml',
+'optArguments_nonhaplotype_irys.xml',
+'optArguments_nonhaplotype_noCut_BG_saphyr.xml',
+'optArguments_nonhaplotype_noCut_DLE1_saphyr_human.xml',
+'optArguments_nonhaplotype_noCut_DLE1_saphyr.xml',
+'optArguments_nonhaplotype_noCut_irys.xml',
+'optArguments_nonhaplotype_noCut_saphyr_human.xml',
+'optArguments_nonhaplotype_noCut_saphyr.xml',
+'optArguments_nonhaplotype_noES_BG_DLE1_saphyr.xml',
+'optArguments_nonhaplotype_noES_BG_saphyr.xml',
+'optArguments_nonhaplotype_noES_DLE1_saphyr_human.xml',
+'optArguments_nonhaplotype_noES_DLE1_saphyr.xml',
+'optArguments_nonhaplotype_noES_irys.xml',
+'optArguments_nonhaplotype_noES_noCut_BG_DLE1_saphyr.xml',
+'optArguments_nonhaplotype_noES_noCut_BG_saphyr.xml',
+'optArguments_nonhaplotype_noES_noCut_DLE1_saphyr.xml',
+'optArguments_nonhaplotype_noES_noCut_irys.xml',
+'optArguments_nonhaplotype_noES_noCut_saphyr.xml',
+'optArguments_nonhaplotype_noES_saphyr.xml',
+'optArguments_nonhaplotype_saphyr_human.xml',
+'optArguments_nonhaplotype_saphyr.xml']
+
+rule main:
+    input:
+        expand(REF_FOLDER + '{ref}/{ref}.autoxy.fa', ref = ['panTro5', 'panTro6']),
+        expand(REF_FOLDER + '{ref}/{enzyme}.{name}/{ref}.{name}_{enzyme}_0kb_0labels.cmap', ref = ['panTro5', 'panTro6'], enzyme = ['DLE1'], name =['all', 'autoxy'] ),
+        expand(DATA_FOLDER +'{species}/{ref}.{name}.{enzyme}.{method}/alignref/{sample}.{ref}.{name}.{enzyme}.{method}.xmap', species= ['panTro'], ref = ['panTro6', 'panTro5'], enzyme = ['BSSSI', 'BSPQI'] , sample = ['clint'], name =['autoxy'], method = ['haplotype_saphyr_human' ]),
+        expand(DATA_FOLDER +'{species}/{ref}.{name}.{enzyme}.{method}/alignref/{sample}.{ref}.{name}.{enzyme}.{method}.xmap', species= ['panTro'], ref = ['panTro6', 'panTro5'], enzyme = ['BSSSI', 'BSPQI'] , sample = ['clint'], name =['autoxy'], method = ['haplotype_saphyr_human' ]),
+	expand(DATA_FOLDER +'{species}/{ref}.{name}.{enzyme}.{method}/alignref/{sample}.{ref}.{name}.{enzyme}.{method}.xmap', species= ['panTro'], ref = ['panTro5'], enzyme = ['BSPQI', 'BSSSI'] , sample = ['clint'], name =['CLINT_OUR_ASSEMBLY'], method =  ['haplotype_saphyr_human' ]),
+	#expand(DATA_FOLDER +'{species}/{ref}.{name}.{enzyme}.{method}/alignref/{sample}.{ref}.{name}.{enzyme}.{method}.xmap', species= ['panTro'], ref = ['panTro5'], enzyme = ['DLE1'] , sample = ['AG18359'], name =['all', 'autoxy'], method = 'haplotype_human'),
+        expand(DATA_FOLDER +'{species}/{ref}.{name}.{enzyme}.{method}/alignref/{sample}.{ref}.{name}.{enzyme}.{method}.xmap', species= ['panPan'], ref = ['panPanNature', 'panPan3', 'panPan2'], enzyme = [ 'BSSSI', 'BSPQI'], sample = ['bonobo'], name =['all'], method = 'haplotype_human'),
+        expand(DATA_FOLDER +'{species}/{ref}.{name}.{enzyme}.{method}/alignref/{sample}.{ref}.{name}.{enzyme}.{method}.xmap', species= ['ponAbe'], ref = ['ponAbe3'], enzyme = ['BSSSI', 'BSPQI'], sample = ['orang'], name =['all'], method = 'haplotype_saphyr_human'),
+	#expand(DATA_FOLDER +'{species}/{ref}.{name}.{enzyme}.{method}/alignref/{sample}.{ref}.{name}.{enzyme}.{method}.xmap', species= ['panTro'], ref = ['panTro5'], enzyme = ['DLE1'] , sample = ['AG18359', 'dle1'], name =['autoxy'], method = 'haplotype_human'),
+	#expand(DATA_FOLDER +'{species}/{ref}.{name}.{enzyme}.{method}/alignref/{sample}.{ref}.{name}.{enzyme}.{method}.xmap', species= ['gorGor'], ref = ['gorGor6'], enzyme = ['DLE1'] , sample = ['kamilah'], name =['all'], method = 'haplotype_human'),
+	#expand(DATA_FOLDER +'{species}/{ref}.{name}.{enzyme}.{method}/alignref/{sample}.{ref}.{name}.{enzyme}.{method}.xmap', species= ['gorGor'], ref = ['hg38'], enzyme = ['DLE1'] , sample = ['kamilah'], name =['all'], method = 'haplotype_human'),
+	#expand(DATA_FOLDER +'{species}/{ref}.{name}.{enzyme}.{method}/alignref/{sample}.{ref}.{name}.{enzyme}.{method}.xmap', species= ['panTro'], ref = ['hg38'], enzyme = [ 'BSPQI', 'BSSSI'] , sample = ['clint'], name =['all'], method = 'haplotype_human')
+	
+rule ref_get_fasta:
+    input:
+        ref_file =  REF_FOLDER + '{ref}/{ref}.all.fa',
+	bed_file =  REF_FOLDER + '{ref}/{ref}.chrom.sizes.{name}.bed'
+    output:
+        REF_FOLDER + '{ref}/{ref}.{name}.fa'
+    shell:
+        """ bedtools getfasta -fi {input.ref_file} -bed {input.bed_file} | """
+	""" awk '{{ if (substr($0,0,1) == ">") print substr($0, 0, match($0,":") - 1); else print $0; }}' """
+	""" > {output} """
+
+rule reffa2cmap:
+    input:
+        REF_FOLDER + '{ref}/{ref}.{name}.fa',
+	singularity_image = SINGULARITY_IMAGE 
+    output:
+        [REF_FOLDER + '{ref}/{enzyme}.{name}/{ref}.{name}_{enzyme}_0kb_0labels' + end  for end  in [ '.cmap', '_key.txt', '_summary.txt' ]]
+    params:
+        bed = REF_FOLDER + '{ref}/{enzyme}.{name}/{ref}.{name}_min1000_nbase.bed',
+        output_dir = lambda wildcards:  REF_FOLDER + '{ref}/{enzyme}.{name}/'.format(**wildcards)
+    threads:
+        20	    
+    shell:
+        'singularity exec {input.singularity_image} perl ' + BIONANO_BIN_FOLDER + 'HybridScaffold/1.0/scripts/fa2cmap_multi_color.pl -i {input} -e {wildcards.enzyme} 1 -B {params.bed} -o {params.output_dir} '
+
+rule cmap2ref_alignment:
+    input:
+        query = DATA_FOLDER +  '{species}/{sample}.{species}.{enzyme}.cmap',
+        ref = REF_FOLDER + '{ref}/{enzyme}.{name}/{ref}.{name}_{enzyme}_0kb_0labels.cmap',
+	singularity_image = SINGULARITY_IMAGE
+    output:
+        [ DATA_FOLDER + '{species}/{ref}.{name}.{enzyme}.{method}/alignref/{sample}.{ref}.{name}.{enzyme}.{method}' + end   for end in ['.chimeric', '.errbin', '.maprate', '_r.cmap', '.xmap', '.err', '.indel', '_q.cmap', '.stdout']]
+    params:
+        run_characterize =  BIONANO_BIN_FOLDER + 'Pipeline/1.0/runCharacterize.py',
+        ref_aligner_binary = BIONANO_BIN_FOLDER + 'RefAligner/1.0/RefAligner',
+        pipeline_directory = BIONANO_BIN_FOLDER + 'Pipeline/1.0/',
+        assembly_opt = lambda wildcards: BIONANO_BIN_FOLDER + 'RefAligner/1.0/optArguments_haplotype_DLE1_saphyr.xml' if wildcards.enzyme == 'DLE1' else  BIONANO_BIN_FOLDER + 'RefAligner/1.0/optArguments_haplotype_saphyr.xml',
+        output_dir = lambda wildcards: DATA_FOLDER + '{species}/{ref}.{name}.{enzyme}.{method}'.format(**wildcards),
+	rename_arg1 = lambda wildcards: '{sample}.{species}.{enzyme}'.format(**wildcards),
+	rename_arg2 = lambda wildcards: '{sample}.{ref}.{name}.{enzyme}.{method}'.format(**wildcards)
+    log:
+        out = DATA_FOLDER + '{species}/{ref}.{name}.{enzyme}.{method}/{sample}_log.out',
+        err = DATA_FOLDER + '{species}/{ref}.{name}.{enzyme}.{method}/{sample}_log.err'
+    threads:
+        20
+    shell:
+        'singularity exec {input.singularity_image} python2 {params.run_characterize} -t {params.ref_aligner_binary} -q {input.query} '
+	' -a {params.assembly_opt} '
+        ' -r {input.ref} -p {params.pipeline_directory} '
+        ' -n {threads} '
+        ' -o {params.output_dir} > {log.out} 2> {log.err}; '
+        ' cd {params.output_dir}/alignref; '
+	' mv {params.rename_arg1}.chimeric {params.rename_arg2}.chimeric; '
+	' mv {params.rename_arg1}.errbin {params.rename_arg2}.errbin; '
+	' mv {params.rename_arg1}.maprate {params.rename_arg2}.maprate; '
+        ' mv {params.rename_arg1}_r.cmap {params.rename_arg2}_r.cmap; '
+        ' mv {params.rename_arg1}.xmap {params.rename_arg2}.xmap; '
+        ' mv {params.rename_arg1}.err {params.rename_arg2}.err; '
+        ' mv {params.rename_arg1}.indel {params.rename_arg2}.indel; '
+        ' mv {params.rename_arg1}_q.cmap {params.rename_arg2}_q.cmap; '
+        ' mv {params.rename_arg1}.stdout {params.rename_arg2}.stdout; '
